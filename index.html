@@ -165,16 +165,7 @@ import {
     getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, orderBy 
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-// Configuração Firebase 🔥
-const firebaseConfig = {
-    apiKey: "AIzaSyB72aG4EcSHVrwnXK36uF9qJsfTvOfR9lw",
-    authDomain: "meus-amigos-site.firebaseapp.com",
-    projectId: "meus-amigos-site",
-    storageBucket: "meus-amigos-site.firebasestorage.app",
-    messagingSenderId: "1000729709619",
-    appId: "1:1000729709619:web:1ace7b814a12f65f2c6746",
-    measurementId: "G-Q3DB1WBKLW"
-};
+
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
