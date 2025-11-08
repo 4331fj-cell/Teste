@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<title>Amigos da Verdade</title>
+
+<style>
+    :root {
+        --fundo: #f0f4f8;
+        --caixa: #ffffff;
+        --texto: #1a1a1a;
+        --azul: #1a4d8f;
+        --comentario: #e9eef5;
+        --botaovermelho: #c62828;
+    }
+
+    body.escuro {
+        --fundo: #1b1e23;
+        --caixa: #2b2f36;
+        --texto: #f1f1f1;
+        --comentario: #3a3f48;
+    }
+
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        background: linear-gradient(135deg, var(--fundo), #d7e1ec);
+        margin: 0;
+        padding: 0;
+        color: var(--texto);
+        transition: 0.3s;
+    }
+
+    nav {
+        background: var(--azul);
+        padding: 12px;
+        text-align: center;
+        color: white;
+        font-size: 20px;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+    }
+
+    nav a {
+        color: white;
+        text-decoration: none;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .container {
+        max-width: 900px;
+        margin: auto;
+        background: var(--caixa);
+        padding: 25px;
+        margin-top: 30px;
+        border-radius: 12px;
+        box-shadow: 0 0 15px rgba(0,0,0,0.10);
+        animation: aparecer 0.6s ease;
+    }
+
+    @keyframes aparecer {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    h2 {
+        color: var(--azul);
+        border-bottom: 2px solid var(--azul);
+        padding-bottom: 5px;
+    }
+
+    input, textarea {
+        width: 100%;
+        border: 1px solid #bbb;
+        border-radius: 6px;
+        padding: 10px;
+        margin-top: 8px;
+        margin-bottom: 10px;
+        font-size: 15px;
+    }
+
+    button {
+        background: var(--azul);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 10px;
+        font-size: 15px;
+        cursor: pointer;
+    }
+
+    button:hover { background: #163e75; }
+
+    .comentario, .amigo {
+        background: var(--comentario);
+        padding: 12px;
+        border-radius: 8px;
+        margin-top: 10px;
+        animation: aparecer 0.4s ease;
+    }
+
+    .comentario button {
+        background: var(--botaovermelho);
+        padding: 6px 10px;
+        border-radius: 6px;
+    }
+
+    .comentario button:hover { background: #8e1d1d; }
+
+    #modo {
+        cursor: pointer;
+        background: white;
+        color: black;
+        border-radius: 20px;
+        padding: 6px 12px;
+        border: none;
+    }
+
+    .secao { display: none; }
+    .ativa { display: block; }
+
+    .amigo h4 {
+        margin: 0 0 8px 0;
+        color: var(--azul);
+    }
+
+    .comentarioAmigo {
+        background: #fff;
+        border-radius: 6px;
+        padding: 8px;
+        margin-top: 6px;
+        font-size: 14px;
+    }
+
+    .comentarioAmigo small {
+        display: block;
+        opacity: 0.7;
+    }
+</style>
+</head>
+<body>
+
+<nav>
+    <a onclick="mostrarSecao('amigos')">Amigos</a>
+    <a onclick="mostrarSecao('comentarios')">Comentários</a>
+    <button id="modo" onclick="alternarTema()">Dark Mode</button>
+</nav>
+
+<div class="container">
+
+    <!-- Seção Amigos -->
+    <div id="amigos" class="secao ativa">
+        <h2>Amigos e seus comentários</h2>
+
+        <input id="meuNome" type="text" placeholder="Digite o seu nome (identificação do criador)">
+        <br><br>
+
+        <div id="listaAmigos"></div>
+        <input id="novoAmigo" type="text" placeholder="Nome do novo amigo">
+        <button onclick="adicionarAmigo()">Adicionar Amigo</button>
+    </div>
+
+    <!-- Seção Comentários gerais -->
+    <div id="comentarios" class="secao">
+        <h2>Comentários sobre o Texto Diário</h2>
+        <p>Leia o texto diário no site oficial:<br>
+        <a href="https://www.jw.org" target="_blank">Aceder ao texto diário oficial</a></p>
+
+        <input id="nome" type="text" placeholder="Seu nome">
+        <textarea id="comentario" placeholder="Escreva o seu comentário..."></textarea>
+        <button onclick="salvarComentario()">Publicar comentário</button>
+
+        <h3 style="margin-top:20px;">Comentários anteriores:</h3>
+        <div id="listaComentarios"></div>
+    </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { 
+    getFirestore, collection, addDoc, setDoc, doc, getDoc, updateDoc,
+    onSnapshot, deleteDoc, query, orderBy 
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+// 🔥 CONFIGURAÇÃO DO FIREBASE
+const firebaseConfig = {
+  apiKey: "AIzaSyB72aG4EcSHVrwnXK36uF9qJsfTvOfR9lw",
+  authDomain: "meus-amigos-site.firebaseapp.com",
+  projectId: "meus-amigos-site",
+  storageBucket: "meus-amigos-site.firebasestorage.app",
+  messagingSenderId: "1000729709619",
+  appId: "1:1000729709619:web:1ace7b814a12f65f2c6746",
+  measurementId: "G-Q3DB1WBKLW"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* ======== FUNÇÕES GERAIS ======== */
+window.mostrarSecao = (id) => {
+    document.querySelectorAll(".secao").forEach(s => s.classList.remove("ativa"));
+    document.getElementById(id).classList.add("ativa");
+}
+
+window.alternarTema = () => {
+    document.body.classList.toggle("escuro");
+    const botao = document.getElementById("modo");
+    botao.textContent = document.body.classList.contains("escuro") ? "Light Mode" : "Dark Mode";
+}
+
+/* ======== COMENTÁRIOS GERAIS ======== */
+async function salvarComentario(){
+    const nome = document.getElementById("nome").value.trim();
+    const texto = document.getElementById("comentario").value.trim();
+    if(!nome || !texto) return alert("Preencha todos os campos!");
+    await addDoc(collection(db, "comentarios"), {
+        autor: nome,
+        comentario: texto,
+        data: new Date().toLocaleString()
+    });
+    document.getElementById("comentario").value = "";
+}
+window.salvarComentario = salvarComentario;
+
+async function apagarComentario(id){
+    if(!confirm("Tem certeza que deseja apagar?")) return;
+    await deleteDoc(doc(db, "comentarios", id));
+}
+
+function mostrarComentarios(){
+    const div = document.getElementById("listaComentarios");
+    const q = query(collection(db, "comentarios"), orderBy("data"));
+    onSnapshot(q, snapshot => {
+        div.innerHTML = "";
+        snapshot.forEach(docSnap => {
+            const item = docSnap.data();
+            const box = document.createElement("div");
+            box.className = "comentario";
+            const texto = document.createElement("span");
+            texto.innerHTML = `<b>${item.autor}:</b> ${item.comentario}<br><small>${item.data}</small>`;
+            const botao = document.createElement("button");
+            botao.textContent = "Apagar";
+            botao.onclick = () => apagarComentario(docSnap.id);
+            box.appendChild(texto);
+            box.appendChild(botao);
+            div.appendChild(box);
+        });
+    });
+}
+
+/* ======== AMIGOS ======== */
+async function adicionarAmigo(){
+    const nomeAmigo = document.getElementById("novoAmigo").value.trim();
+    const criador = document.getElementById("meuNome").value.trim();
+    if(!criador) return alert("Digite o seu nome primeiro (campo no topo).");
+    if(!nomeAmigo) return alert("Digite o nome do amigo!");
+    await addDoc(collection(db, "amigos"), {
+        nome: nomeAmigo,
+        criador: criador,
+        comentario: "",
+        data: new Date().toLocaleString()
+    });
+    document.getElementById("novoAmigo").value = "";
+}
+window.adicionarAmigo = adicionarAmigo;
+
+async function atualizarComentarioAmigo(id, texto){
+    await updateDoc(doc(db, "amigos", id), { comentario: texto });
+}
+
+function mostrarAmigos(){
+    const div = document.getElementById("listaAmigos");
+    const q = query(collection(db, "amigos"), orderBy("nome"));
+    onSnapshot(q, snapshot => {
+        div.innerHTML = "";
+        const meuNome = document.getElementById("meuNome").value.trim();
+        snapshot.forEach(docSnap => {
+            const amigo = docSnap.data();
+            const box = document.createElement("div");
+            box.className = "amigo";
+            const nome = document.createElement("h4");
+            nome.textContent = amigo.nome + " (por " + amigo.criador + ")";
+            const area = document.createElement("textarea");
+            area.placeholder = "Comentário de " + amigo.criador;
+            area.value = amigo.comentario || "";
+            area.disabled = (meuNome !== amigo.criador);
+            area.oninput = () => atualizarComentarioAmigo(docSnap.id, area.value);
+            box.appendChild(nome);
+            box.appendChild(area);
+            if(meuNome !== amigo.criador && amigo.comentario){
+                const texto = document.createElement("div");
+                texto.className = "comentarioAmigo";
+                texto.innerHTML = `<b>${amigo.criador} escreveu:</b> ${amigo.comentario}`;
+                box.appendChild(texto);
+            }
+            div.appendChild(box);
+        });
+    });
+}
+
+document.getElementById("meuNome").addEventListener("input", mostrarAmigos);
+
+window.onload = () => {
+    mostrarComentarios();
+    mostrarAmigos();
+};
+</script>
+
+</body>
+</html>
