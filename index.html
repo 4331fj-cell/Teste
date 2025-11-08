@@ -137,14 +137,12 @@
     <!-- Seção Amigos -->
     <div id="amigos" class="secao ativa">
         <h2>Amigos da Verdade</h2>
-        <input id="novoAmigo" type="text" placeholder="Adicionar novo amigo">
-        <button onclick="adicionarAmigo()">Adicionar Amigo</button>
-
-        <h3>Lista de Amigos e Comentários</h3>
         <div id="listaAmigos"></div>
+        <h3>Comentários dos Amigos:</h3>
+        <div id="comentariosAmigos"></div>
     </div>
 
-    <!-- Seção Comentários do Texto Diário -->
+    <!-- Seção Comentários sobre o texto diário -->
     <div id="comentarios" class="secao">
         <h2>Comentários sobre o Texto Diário</h2>
         <p>Leia o texto diário no site oficial:<br>
@@ -160,9 +158,12 @@
 
 </div>
 
+<!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import { 
+    getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, orderBy 
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 // Configuração Firebase 🔥
 const firebaseConfig = {
@@ -192,13 +193,14 @@ window.mostrarSecao = function(id){
 }
 
 /* ======== AMIGOS ======== */
-const amigosFixos = ["Laudir", "Bryan", "Tomás", "António", "Leoniro", "Gabriel", "Áquila", "Victor"];
+const amigosFixos = ["Ana", "João", "Maria", "Pedro", "Sara"];
 
+// Criar amigos se não existirem
 async function inicializarAmigos() {
+    const q = query(collection(db, "amigos"));
     const amigosRef = collection(db, "amigos");
-    const q = query(amigosRef);
-    const snapshot = await new Promise(resolve => onSnapshot(q, resolve));
-    const existentes = snapshot.docs.map(d => d.data().nome);
+    let existentes = [];
+    onSnapshot(q, snapshot => existentes = snapshot.docs.map(d => d.data().nome));
 
     for (const nome of amigosFixos) {
         if (!existentes.includes(nome)) {
@@ -207,22 +209,19 @@ async function inicializarAmigos() {
     }
 }
 
-// Adicionar amigo novo
-window.adicionarAmigo = async function() {
-    const nome = document.getElementById("novoAmigo").value.trim();
-    if (!nome) return alert("Digite o nome do amigo!");
-    await addDoc(collection(db, "amigos"), { nome, comentario: "" });
-    document.getElementById("novoAmigo").value = "";
-}
-
-// Mostrar amigos e permitir publicar comentários
+// Mostrar amigos com campo de comentário
 function mostrarAmigos() {
     const listaDiv = document.getElementById("listaAmigos");
+    const comentariosDiv = document.getElementById("comentariosAmigos");
     const q = query(collection(db, "amigos"), orderBy("nome"));
-    onSnapshot(q, snapshot => {
+    onSnapshot(q, (snapshot) => {
         listaDiv.innerHTML = "";
+        comentariosDiv.innerHTML = "";
+
         snapshot.forEach(docSnap => {
             const amigo = docSnap.data();
+
+            // Card do amigo
             const box = document.createElement("div");
             box.className = "amigo";
 
@@ -230,7 +229,7 @@ function mostrarAmigos() {
             nome.textContent = amigo.nome;
 
             const area = document.createElement("textarea");
-            area.placeholder = "Escreva o seu comentário...";
+            area.placeholder = "Escreva algo...";
             area.value = amigo.comentario || "";
 
             const botao = document.createElement("button");
@@ -242,16 +241,15 @@ function mostrarAmigos() {
             box.appendChild(nome);
             box.appendChild(area);
             box.appendChild(botao);
+            listaDiv.appendChild(box);
 
-            // Se já houver comentário, mostrar abaixo
+            // Mostrar comentário publicado
             if (amigo.comentario) {
                 const coment = document.createElement("div");
                 coment.className = "comentario";
                 coment.innerHTML = `<b>${amigo.nome}:</b> ${amigo.comentario}`;
-                box.appendChild(coment);
+                comentariosDiv.appendChild(coment);
             }
-
-            listaDiv.appendChild(box);
         });
     });
 }
@@ -265,12 +263,12 @@ window.salvarComentario = async function(){
     document.getElementById("comentario").value = "";
 }
 
-function mostrarComentarios() {
+function mostrarComentarios(){
     const div = document.getElementById("listaComentarios");
     const q = query(collection(db, "comentarios"), orderBy("data"));
-    onSnapshot(q, snapshot => {
+    onSnapshot(q, (snapshot) => {
         div.innerHTML = "";
-        snapshot.forEach(docSnap => {
+        snapshot.forEach((docSnap) => {
             const item = docSnap.data();
             const box = document.createElement("div");
             box.className = "comentario";
